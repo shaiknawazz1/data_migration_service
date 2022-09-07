@@ -68,16 +68,9 @@ class SQLParser(Resource):
     def post(self):
         """get list of tables from given query"""
         args = parser.parse_args()
-        #todo_id = "todo%d" % (len(TODOS) + 1)
-        #TODOS[todo_id] = {"task": args["task"]}
-        print(args)
         sqlStr = args["query"]
         wfName = args["wf_name"]
-        #writeToFile(sqlStr.upper())
         resp = processSql(sqlStr, wfName)
-        #load mapping file
-        #processMappingFiles()
-        #return respJSON, 201
         return resp, 201
 
 #@ns.route("/get_tables")
@@ -113,7 +106,7 @@ class SQLParser(Resource):
 
     def get(self, wf):
         """get a list of aliases from given query"""
-        print(wfProcessMap)
+        #print(wfProcessMap)
         resp = wfProcessMap[wf]["alias"]
         return resp, 200
 
@@ -162,6 +155,7 @@ class SQLParser(Resource):
         resp = json.loads("""{"table_mapping":{}, "columns_mapping":{}, "missing_mappings":{"tables" : [], "columns": []}}""")
 
         # load tables Mapping
+        print("inside get mappings")
 
         tm = resp['table_mapping']
         mm = resp['missing_mappings']
@@ -176,7 +170,8 @@ class SQLParser(Resource):
                 missingtab.append(table)
 
         # load columns Mapping
-
+        print(wfProcessMap)
+        print ("jsut before map")
         colKeys = otgTabColMap.keys()
         for col in wfProcessMap[wf]["columns"]:
 
@@ -202,40 +197,21 @@ def processSql(sql,wf):
     wfProcessMap[wf] = response.json()
     return response.json()
 
-
-# def processSql():
-#     global respJSON
-#     if os.path.isfile("response.json"):
-#         os.remove("response.json")
-#     os.system( "java -jar sqlutils.jar " + "inputQuery.sql")
-#     print ('executing JAR')
-#     file_exists = True
-#     count = 0
-#     while(file_exists):
-#         print ('inside while And Count is ', count )
-#         file_exists = os.path.isfile("response.json")
-#         if file_exists:
-#             break
-#         else:
-#             time.sleep(3)
-#         count += 1
-#         if count >= 30:
-#             raise Exception("Unable to process the SQL, its taking more than 5 minutes")
-#     respJSON = loadJSON()
-
 def processMappingFiles():
-    fls = os.listdir("mapping_files")
+    path = os.getcwd()
+    path = path + "\scripts\mapping_files"
+    print (path )
+    fls = os.listdir(path)
+    # fls.sort()
+    # print(fls)
     for fl in fls:
         # read all the xlsx files
-        wb = xl.open_workbook("mapping_files/" + fl)
+        wb = xl.open_workbook(path + "\\" + fl)
         shts = wb.sheet_names()
         for sht in shts:
-
             print ("processing " + "Excel :" + fl + "work sheet: " + sht)
             ws = wb.sheet_by_name(sht)
             loadMappings(wb,ws)
-
-
 
 def loadMappings(wb,ws):
     """Load mapping details of oracle table and gcp table to a map"""
@@ -279,6 +255,7 @@ def writeToFile(str):
     
     
 if __name__ == "__main__":
+    processMappingFiles()
     app.run(port=5500, debug=True)
 
 

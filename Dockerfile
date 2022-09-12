@@ -20,6 +20,7 @@ COPY --chown=1001:0 build/docker/lib/*.jar /config/lib/insights/
 #COPY build/docker/apps/*.war /config/apps/
 #COPY build/docker/lib/*.jar /config/lib/insights/
 
+
 USER 1001
 
 

@@ -298,7 +298,7 @@ ext {
   travisTag = System.getenv('TRAVIS_TAG')?.trim() ?: 'latest'
   travisBuildNumber = project.build_version
   // if tag is provided use release repo else staging 
-  dockerRegistry = "docker_registry_url"
+  dockerRegistry = "mit"
   // if tag is not provided and branch is not develop use build_number for docker image tag
   // latest tag to be used only for develop branch
   if (travisTag == 'latest' && branchName != 'develop') {
@@ -313,6 +313,7 @@ ext {
   imageFullName = "${imageName}:" + travisTag
   // else if TRAVIS_BUILD_NUMBER is provided use it for additional tag with build number
   imageTag = "${imageName}:" + travisBuildNumber
+  imageFullNamePy = 'ora-gcp-utils'
 }
 
 task showProjectInfo {
@@ -404,6 +405,14 @@ gradle.projectsEvaluated {
          dependsOn(it.tasks.dockerCopyApps)
      }
   }
+  
+  // Copy Apps/python scripts to docker/scripts dir 
+  task dockerCopyScripts(type: Copy) {
+  def scriptsDir = 'Scripts'
+  from (scriptsDir) {
+  }
+  into "${rootProject.buildDir}/docker/scripts"
+}
 
 /* 
   task dockerLogin(type: Exec) {
@@ -414,13 +423,21 @@ gradle.projectsEvaluated {
   }
 */
 
-  task dockerBuildImage(type: Exec, dependsOn: [ dockerCopyApps, dockerCopyLibs, dockerCopyServerConfig, showProjectInfo ]) {
+  task dockerBuildImage(type: Exec, dependsOn: [ dockerCopyApps, dockerCopyLibs, dockerCopyServerConfig, dockerCopyScripts, showProjectInfo ]) {
     doFirst {
       println "Docker Image    - " + imageFullName
       println "Docker Registry - " + dockerRegistry
     }
     workingDir projectDir
     commandLine 'docker', 'build', '-t', imageFullName, '-f', 'Dockerfile', '.'
+  }
+  
+  task dockerBuildImagePy(type: Exec, dependsOn: [dockerCopyScripts, showProjectInfo ]) {
+    doFirst {
+      println "Docker Image    - " + imageFullNamePy
+    }
+    workingDir projectDir
+    commandLine 'docker', 'build', '-t', imageFullNamePy, '-f', 'Dockerfile-py', '.'
   }
 
   task dockerTagImage(type: Exec, dependsOn: dockerBuildImage) {

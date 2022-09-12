@@ -1,46 +1,26 @@
-FROM Docker_registry_url/websphere-liberty-ubi8-x86_64:latest
-MAINTAINER MIT
+# Start with OL runtime.
+FROM icr.io/appcafe/open-liberty:full-java11-openj9-ubi
 
-# install as root	
+ARG VERSION=1.0
+ARG REVISION=SNAPSHOT
+
 USER root
 
-# create server and install necessary liberty extensions
-RUN set -eux \
-	&& server create gov_insights_service \
-    && ln -sfn $WLP_USER_DIR/../output/gov_insights_service /output \
-    && ln -sfn $WLP_USER_DIR/servers/gov_insights_service /config
-
-# copy server configuration
-COPY build/docker/server.xml \
-     build/docker/jvm.options \
-     build/docker/log4j2.xml \
-     /config/
-COPY build/docker/configDropins /config/configDropins
-
-# copy application files
-COPY build/docker/lib/ /config/lib/insights
-COPY build/docker/apps/*.war /config/apps/
-
-#copy scripts
-COPY scripts/*.sh /
-
-# set ownership for non-root user
-RUN set -eux \
-	&& mkdir -p /config/configDropins/defaults \
-	&& mkdir -p /config/config \
-	&& find -L /config -type d -exec chmod o+rx {} \; \
-	&& find -L /config -type f -exec chmod o+r {} \; \
-	&& chown -RL liberty:liberty /config 
-
-#install utilities 
-RUN /opt/ibm/wlp/bin/installUtility install --acceptLicense gov_insights_service
-
-# run as non-root
-USER liberty
-	
-# expose ports
 EXPOSE 9080
 
-# set up entry point and default command
-ENTRYPOINT [ "/docker-entrypoint.sh" ]
-CMD [ "/start_service.sh" ]
+COPY --chown=1001:0 build/docker/server.xml /config/
+COPY --chown=1001:0 build/docker/jvm.options /config/
+COPY --chown=1001:0 build/docker/log4j2.xml /config/
+COPY --chown=1001:0 build/docker/apps/*.war /config/apps/
+COPY --chown=1001:0 build/docker/lib/*.jar /config/lib/insights/
+
+#COPY build/docker/server.xml /config/
+#COPY build/docker/jvm.options /config/
+#COPY build/docker/log4j2.xml /config/
+#COPY build/docker/apps/*.war /config/apps/
+#COPY build/docker/lib/*.jar /config/lib/insights/
+
+USER 1001
+
+
+#USER root

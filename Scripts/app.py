@@ -4,6 +4,7 @@ from flask_restx import Api, Resource, fields
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.datastructures import FileStorage
 import os
+import platform
 import json
 from os.path import exists
 import time
@@ -21,6 +22,7 @@ otgTabColMap = {}
 host = "localhost"
 port = "9080"
 path = "sql"
+osdetails = platform.system()
 
 
 
@@ -130,20 +132,6 @@ class CompareCSV(Resource):
         response.headers['my-custom-header'] = 'my-custom-status-0'
         return response
 
-        # filename = rq.form.get('Validation_response.txt')
-        # file_data = codecs.open(filename, 'rb').read()
-        # return file_data
-        #open("Validation_response.txt", "wb").write(resp.content)
-
-        #send file as response "Validation_response.txt"
-    #     response = send_file(
-    #     filename_or_fp="Validation_response.txt",
-    #     mimetype="application/octet-stream",
-    #     as_attachment=True,
-    #     attachment_filename= "Validation_response.txt" #data["Validation_response.txt"]
-    # )
-        #return resp, 200
-
 @ns.route("/get_mappings/<wf>")
 @api.param("wf", "The work flow name/identifier")
 @api.response(404, "Workflow not found")
@@ -191,22 +179,34 @@ class SQLParser(Resource):
         return resp, 200
 
 def processSql(sql,wf):
-    api_url = "http://" + host + ":" + port + "/"+ path
-    headers =  {"Content-Type":"application/json"}
-    response = rq.post(api_url, data=sql, headers=headers)
+
+    if osdetails == 'Windows':
+        api_url = "http://" + host + ":" + port + "/"+ path
+        headers =  {"Content-Type":"application/json"}
+        response = rq.post(api_url, data=sql, headers=headers)
+    else:
+        api_url = "http://" + "data-migration-sql-helper" + ":" + port + "/"+ path
+        headers =  {"Content-Type":"application/json"}
+        response = rq.post(api_url, data=sql, headers=headers)
+        
     wfProcessMap[wf] = response.json()
     return response.json()
 
 def processMappingFiles():
     path = os.getcwd()
-    path = path + "\scripts\mapping_files"
-    print (path )
+    
+
+    if osdetails == 'Windows':
+        path = path + "\\Scripts\\mapping_files"
+    else:
+        path = path + "/mapping_files"
+    
     fls = os.listdir(path)
     # fls.sort()
     # print(fls)
     for fl in fls:
         # read all the xlsx files
-        wb = xl.open_workbook(path + "\\" + fl)
+        wb = xl.open_workbook(path + "/" + fl)
         shts = wb.sheet_names()
         for sht in shts:
             print ("processing " + "Excel :" + fl + "work sheet: " + sht)
